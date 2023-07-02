@@ -1,24 +1,46 @@
-import { createPortal } from 'react-dom';
-import useCars from '../hooks/useCars';
-import { useState } from 'react';
+import { toLocalHost, searchById, fromLocalHost } from '../helpers/mutate';
+import { useEffect, useState } from 'react';
+
 import { Car } from '../services/carsService';
+import APIClient from '../services/carsService';
 import Action from './Action';
 import Modal from './Modal';
+import DeleteAction from './DeleteAction';
+import Form from './Form';
+import { modelCar } from '../helpers/modelCar';
 
 const PER_PAGE = 20;
 
 function Table() {
-  const { data, error, isLoading } = useCars();
+  const [cars, setCars] = useState<Car[]>([]);
   const [displayCarPage, setDisplayCarsPage] = useState(PER_PAGE);
-  const [openModal, setOpenModal] = useState(false)
+  const [openModal, setOpenModal] = useState(false);
+  const [selectedAction, setSelectedAction] = useState('');
+  const [selectedId, setSelectedId] = useState(0);
+  const [isCreate, setIsCreate] = useState(false);
 
-  if (isLoading) return <p>Loading...</p>;
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const { cars } = await APIClient.getAll();
+        setCars(cars);
+        toLocalHost(cars);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    const dataLocal = fromLocalHost();
 
-  if (error) return <p>{error.message}</p>;
+    if (dataLocal) {
+      setCars(dataLocal);
+    } else {
+      fetchData();
+    }
+  }, []);
 
-  const dataLength = data.cars.length;
+  const dataLength = cars.length;
 
-  const page = data.cars.slice(displayCarPage - PER_PAGE, displayCarPage);
+  const page = cars.slice(displayCarPage - PER_PAGE, displayCarPage);
 
   function handlePrevious() {
     if (displayCarPage > PER_PAGE) {
@@ -31,34 +53,52 @@ function Table() {
   }
 
   function handleSelected(id: number, option: string): void {
-    console.log(option);
-    console.log(id);
-    console.log(openModal);
+    setSelectedId(id);
+    setSelectedAction(option);
+    setOpenModal(true);
+    setIsCreate(false);
+  }
 
-    setOpenModal(true)
+  function handleCreateCar() {
+    setIsCreate(true);
+    setSelectedId(0);
+    setOpenModal(true);
   }
 
   return (
     <>
-      {openModal  ? <Modal openModal={openModal} setOpenModal = {setOpenModal}/> : ''} ,
-
+      <Modal
+        insideModal={
+          selectedAction === 'delete' ? (
+            <DeleteAction
+              id={selectedId}
+              setCars={setCars}
+              cars={cars}
+              setOpenModal={setOpenModal}
+            />
+          ) : (
+            <Form
+              isCreate={isCreate}
+              setOpenModal={setOpenModal}
+              id={selectedId}
+              cars={cars}
+              carData={searchById(selectedId) || modelCar}
+              setCars={setCars}
+            />
+          )
+        }
+        openModal={openModal}
+        setOpenModal={setOpenModal}
+      />
       <div className="px-4 sm:px-6 lg:px-8 mb-8">
         <div className="sm:flex sm:items-center">
-          <div className="sm:flex-auto">
-            <h1 className="text-base font-semibold leading-6 text-gray-900">
-              Users
-            </h1>
-            <p className="mt-2 text-sm text-gray-700">
-              A list of all the users in your account including their name,
-              title, email and role.
-            </p>
-          </div>
-          <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+          <div className="mt-4 sm:mt-0 sm:flex-none">
             <button
+              onClick={handleCreateCar}
               type="button"
               className="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
             >
-              Add user
+              Add Car
             </button>
           </div>
         </div>
@@ -138,13 +178,13 @@ function Table() {
                           {car_model}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {car_vin}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                           {car_color}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                           {car_model_year}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {car_vin}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                           {price}

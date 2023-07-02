@@ -16,4 +16,4 @@ export interface Cars {
 }
 
 
-export default new APIClient<Car>('/cars');
+export default new APIClient<Cars>('/cars');
