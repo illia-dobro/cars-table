@@ -60,6 +60,7 @@ function Table() {
   }
 
   function handleCreateCar() {
+    setSelectedAction('')
     setIsCreate(true);
     setSelectedId(0);
     setOpenModal(true);
